@@ -1,60 +1,42 @@
 <?php
 
-namespace App\Http\Controllers;
+use App\Http\Controllers\ProfileController;
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\CashInflowController;
+use App\Http\Controllers\CashOutflowController;
+use App\Models\CashInflow;
+use App\Models\CashOutflow;
 
-use App\Http\Requests\ProfileUpdateRequest;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Redirect;
-use Illuminate\View\View;
+// Halaman Awal
+Route::get('/', function () {
+    return view('welcome');
+});
 
-class ProfileController extends Controller
-{
-    /**
-     * Display the user's profile form.
-     */
-    public function edit(Request $request): View
-    {
-        return view('profile.edit', [
-            'user' => $request->user(),
-        ]);
-    }
+// Route Dashboard dengan kalkulasi dinamis
+Route::get('/dashboard', function () {
+    $totalIncome = CashInflow::sum('total_pendapatan');
+    $totalExpense = CashOutflow::sum('total');
+    $balance = $totalIncome - $totalExpense;
+    
+    return view('dashboard', compact('totalIncome', 'totalExpense', 'balance'));
+})->middleware(['auth'])->name('dashboard');
 
-    /**
-     * Update the user's profile information.
-     */
-    public function update(ProfileUpdateRequest $request): RedirectResponse
-    {
-        $request->user()->fill($request->validated());
+// Route Resource yang wajib login
+Route::middleware(['auth'])->group(function () {
+    
+    // Route Profile (Wajib ada untuk menu navigasi Breeze)
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
-        }
+   
+    Route::resource('users', UserController::class)->except(['show']);
+    
+    // Route untuk Cash Inflow dan Outflow
+    Route::resource('cash-inflow', CashInflowController::class)->except(['show']);
+    Route::resource('cash-outflow', CashOutflowController::class)->except(['show']);
+});
 
-        $request->user()->save();
-
-        return Redirect::route('profile.edit')->with('status', 'profile-updated');
-    }
-
-    /**
-     * Delete the user's account.
-     */
-    public function destroy(Request $request): RedirectResponse
-    {
-        $request->validateWithBag('userDeletion', [
-            'password' => ['required', 'current_password'],
-        ]);
-
-        $user = $request->user();
-
-        Auth::logout();
-
-        $user->delete();
-
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-
-        return Redirect::to('/');
-    }
-}
+// Load route authentication (bawaan Laravel Breeze)
+require __DIR__.'/auth.php';

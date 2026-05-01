@@ -1,29 +1,35 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\UserController;
-use App\Http\Controllers\OrderController; // WAJIB ADA INI
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\CashInflowController;
+use App\Http\Controllers\CashOutflowController;
+use App\Models\CashInflow;
+use App\Models\CashOutflow;
 
+// Halaman Awal
 Route::get('/', function () {
     return view('welcome');
 });
 
+// Route Dashboard dengan kalkulasi dinamis
 Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+    $totalIncome = CashInflow::sum('total_pendapatan');
+    $totalExpense = CashOutflow::sum('total');
+    $balance = $totalIncome - $totalExpense;
+    
+    return view('dashboard', compact('totalIncome', 'totalExpense', 'balance'));
+})->middleware(['auth'])->name('dashboard');
 
-Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-
-    // Manajemen Pengguna (PPT)
-    Route::resource('users', UserController::class);
-
-    // Manajemen Pesanan (Tugas Baru)
-    // Baris ini yang mendefinisikan 'orders.index', 'orders.create', dll.
-    Route::resource('orders', OrderController::class);
+// Route Resource yang wajib login
+Route::middleware(['auth'])->group(function () {
+    // Route User (dari tugas sebelumnya)
+    Route::resource('users', UserController::class)->except(['show']);
+    
+    // Route untuk Cash Inflow dan Outflow
+    Route::resource('cash-inflow', CashInflowController::class)->except(['show']);
+    Route::resource('cash-outflow', CashOutflowController::class)->except(['show']);
 });
 
+// Load route authentication (bawaan Laravel Breeze)
 require __DIR__.'/auth.php';

@@ -9,6 +9,6 @@ class CashOutflow extends Model
 {
     use HasFactory;
 
-    // Tambahkan baris ini juga ya!
+    
     protected $guarded = []; 
 }

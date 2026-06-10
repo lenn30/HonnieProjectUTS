@@ -33,3 +33,4 @@ Route::middleware(['auth'])->group(function () {
 
 // Load route authentication (bawaan Laravel Breeze)
 require __DIR__.'/auth.php';
+

@@ -10,19 +10,29 @@ use App\Models\User;
 
 class UserController extends Controller
 {
-public function index() 
+    public function index() 
     {
+        // Semua bisa melihat daftar
         $users = User::orderBy('id', 'desc')->paginate(10);
         return view('users.index', compact('users'));
     }
 
-public function create()
+    public function create()
     {
-    return view('users.create'); 
+        // Gembok: Cegah user biasa masuk halaman form create
+        if (auth()->user()->role !== 'admin') {
+            abort(403, 'Akses ditolak. Hanya Admin yang dapat menambah data.');
+        }
+        return view('users.create'); 
     }
 
-public function store(Request $request)
+    public function store(Request $request)
     {
+        // Gembok: Cegah user biasa mengirim data create
+        if (auth()->user()->role !== 'admin') {
+            abort(403, 'Akses ditolak.');
+        }
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
@@ -40,42 +50,55 @@ public function store(Request $request)
         return redirect()->route('users.index')->with('success', 'User berhasil ditambahkan.');
     }
 
-public function edit(User $user)
+    public function edit(User $user)
     {
+        // Gembok: Cegah user biasa masuk halaman form edit
+        if (auth()->user()->role !== 'admin') {
+            abort(403, 'Akses ditolak. Hanya Admin yang dapat mengubah data.');
+        }
         return view('users.edit', compact('user'));
     }
 
-public function update(Request $request, User $user)
-    
+    public function update(Request $request, User $user)
     {
-    $validated = $request->validate([
-        'name' => ['required', 'string', 'max:255'],
-        'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
-        'role' => ['required', Rule::in(['admin', 'user'])],
-        'password' => ['nullable', 'string', 'min:6', 'confirmed']
-    ]);
+        // Gembok: Cegah user biasa mengirim data update
+        if (auth()->user()->role !== 'admin') {
+            abort(403, 'Akses ditolak.');
+        }
 
-    $user->name = $validated['name'];
-    $user->email = $validated['email'];
-    $user->role = $validated['role'];
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
+            'role' => ['required', Rule::in(['admin', 'user'])],
+            'password' => ['nullable', 'string', 'min:6', 'confirmed']
+        ]);
 
-    if (!empty($validated['password'])) {
-        $user->password = \Hash::make($validated['password']);
+        $user->name = $validated['name'];
+        $user->email = $validated['email'];
+        $user->role = $validated['role'];
+
+        if (!empty($validated['password'])) {
+            $user->password = \Hash::make($validated['password']);
+        }
+
+        $user->save();
+
+        return redirect()->route('users.index')->with('success', 'User berhasil diupdate.');
     }
 
-    $user->save();
-
-    return redirect()->route('users.index')->with('success', 'User berhasil diupdate.');
-    }
-
-public function destroy(User $user)
+    public function destroy(User $user)
     {
-    if (auth()->id() === $user->id) {
-        return redirect()->route('users.index')->with('error', 'Anda tidak bisa menghapus akun sendiri.');
+        // Gembok: Cegah user biasa menghapus data
+        if (auth()->user()->role !== 'admin') {
+            abort(403, 'Akses ditolak. Hanya Admin yang dapat menghapus data.');
+        }
+
+        if (auth()->id() === $user->id) {
+            return redirect()->route('users.index')->with('error', 'Anda tidak bisa menghapus akun sendiri.');
+        }
+
+        $user->delete();
+
+        return redirect()->route('users.index')->with('success', 'User berhasil dihapus.');
     }
-
-    $user->delete();
-
-    return redirect()->route('users.index')->with('success', 'User berhasil dihapus.');
-}
 }

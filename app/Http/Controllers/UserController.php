@@ -2,49 +2,35 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
-use Illuminate\Support\Facades\Hash;
-
 use App\Models\User;
+use App\Http\Requests\UserRequest; // <-- Import form request baru
+use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
     public function index() 
     {
-        // Semua bisa melihat daftar
         $users = User::orderBy('id', 'desc')->paginate(10);
         return view('users.index', compact('users'));
     }
 
     public function create()
     {
-        // Gembok: Cegah user biasa masuk halaman form create
         if (auth()->user()->role !== 'admin') {
             abort(403, 'Akses ditolak. Hanya Admin yang dapat menambah data.');
         }
         return view('users.create'); 
     }
 
-    public function store(Request $request)
+    public function store(UserRequest $request) // <-- Gunakan UserRequest
     {
-        // Gembok: Cegah user biasa mengirim data create
-        if (auth()->user()->role !== 'admin') {
-            abort(403, 'Akses ditolak.');
-        }
-
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'role' => ['required', Rule::in(['admin', 'user'])],
-            'password' => ['required', 'string', 'min:6', 'confirmed'],
-        ]);
+        $validated = $request->validated();
 
         User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'role' => $validated['role'],
-            'password' => \Hash::make($validated['password']),
+            'password' => Hash::make($validated['password']),
         ]);
 
         return redirect()->route('users.index')->with('success', 'User berhasil ditambahkan.');
@@ -52,43 +38,31 @@ class UserController extends Controller
 
     public function edit(User $user)
     {
-        // Gembok: Cegah user biasa masuk halaman form edit
         if (auth()->user()->role !== 'admin') {
             abort(403, 'Akses ditolak. Hanya Admin yang dapat mengubah data.');
         }
         return view('users.edit', compact('user'));
     }
 
-    public function update(Request $request, User $user)
+    public function update(UserRequest $request, User $user) // <-- Gunakan UserRequest
     {
-        // Gembok: Cegah user biasa mengirim data update
-        if (auth()->user()->role !== 'admin') {
-            abort(403, 'Akses ditolak.');
-        }
-
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
-            'role' => ['required', Rule::in(['admin', 'user'])],
-            'password' => ['nullable', 'string', 'min:6', 'confirmed']
-        ]);
+        $validated = $request->validated();
 
         $user->name = $validated['name'];
         $user->email = $validated['email'];
         $user->role = $validated['role'];
 
         if (!empty($validated['password'])) {
-            $user->password = \Hash::make($validated['password']);
+            $user->password = Hash::make($validated['password']);
         }
 
         $user->save();
 
-        return redirect()->route('users.index')->with('success', 'User berhasil diupdate.');
+        return redirect()->route('users.index')->with('success', 'User berhasil diperbarui.');
     }
 
     public function destroy(User $user)
     {
-        // Gembok: Cegah user biasa menghapus data
         if (auth()->user()->role !== 'admin') {
             abort(403, 'Akses ditolak. Hanya Admin yang dapat menghapus data.');
         }

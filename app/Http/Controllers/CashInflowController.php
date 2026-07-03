@@ -2,15 +2,17 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\CashInflow;
+use App\Http\Requests\CashInflowRequest; // <-- Import form request baru
 
 class CashInflowController extends Controller
 {
     public function index()
     {
-        $cashInflows = CashInflow::orderBy('id', 'desc')->paginate(10);
-        $totalIncome = CashInflow::sum('total_pendapatan');
+        // Menambahkan filter supaya user hanya melihat datanya sendiri
+        $cashInflows = CashInflow::where('user_id', auth()->id())->orderBy('id', 'desc')->paginate(10);
+        $totalIncome = CashInflow::where('user_id', auth()->id())->sum('total_pendapatan');
+        
         return view('cash_inflow.index', compact('cashInflows', 'totalIncome'));
     }
 
@@ -19,44 +21,35 @@ class CashInflowController extends Controller
         return view('cash_inflow.create');
     }
 
-    public function store(Request $request)
+    public function store(CashInflowRequest $request) // <-- Gunakan CashInflowRequest
     {
-        $validated = $request->validate([
-            'tanggal' => ['required', 'date'],
-            'deskripsi' => ['required', 'string', 'max:255'],
-            'total_pendapatan' => ['required', 'integer'],
-        ]);
+        $data = $request->validated(); // Ambil data yang sudah lolos validasi
+        $data['user_id'] = auth()->id(); // Masukkan ID user yang sedang login
 
-        CashInflow::create($validated);
+        CashInflow::create($data);
 
         return redirect()->route('cash-inflow.index')->with('success', 'Data berhasil ditambahkan.');
     }
 
     public function edit($id)
     {
-        // Mencari data berdasarkan ID untuk dikirim ke form edit
         $cash_inflow = CashInflow::findOrFail($id);
         return view('cash_inflow.edit', compact('cash_inflow'));
     }
 
-    public function update(Request $request, $id)
+    public function update(CashInflowRequest $request, $id) // <-- Gunakan CashInflowRequest
     {
-        $validated = $request->validate([
-            'tanggal' => ['required', 'date'],
-            'deskripsi' => ['required', 'string', 'max:255'],
-            'total_pendapatan' => ['required', 'integer'],
-        ]);
-
-        // Mencari data lama lalu mengupdatenya dengan data baru
+        $data = $request->validated();
+        
         $cash_inflow = CashInflow::findOrFail($id);
-        $cash_inflow->update($validated);
+        $cash_inflow->update($data);
 
-        return redirect()->route('cash-inflow.index')->with('success', 'Data berhasil diupdate.');
+        // Ubah kata "diupdate" jadi "diperbarui" agar konsisten bahasa Indonesia
+        return redirect()->route('cash-inflow.index')->with('success', 'Data berhasil diperbarui.');
     }
 
     public function destroy($id)
     {
-        // Mencari data lalu menghapusnya
         $cash_inflow = CashInflow::findOrFail($id);
         $cash_inflow->delete();
 

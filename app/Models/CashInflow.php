@@ -9,6 +9,11 @@ class CashInflow extends Model
 {
     use HasFactory;
 
-    // Tambahkan baris ini untuk memberikan izin penyimpanan data
     protected $guarded = []; 
+
+    // Hubungkan CashInflow ke model User
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }

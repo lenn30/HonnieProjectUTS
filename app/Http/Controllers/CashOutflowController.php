@@ -2,15 +2,17 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\CashOutflow;
+use App\Http\Requests\CashOutflowRequest; // <-- Import Request Baru
 
 class CashOutflowController extends Controller
 {
     public function index()
     {
-        $cashOutflows = CashOutflow::orderBy('id', 'desc')->paginate(10);
+        // Menggunakan with('user') agar loading data nama user lebih cepat dan ringan
+        $cashOutflows = CashOutflow::with('user')->orderBy('id', 'desc')->paginate(10);
         $totalExpense = CashOutflow::sum('total');
+        
         return view('cash_outflow.index', compact('cashOutflows', 'totalExpense'));
     }
 
@@ -19,16 +21,16 @@ class CashOutflowController extends Controller
         return view('cash_outflow.create');
     }
 
-    public function store(Request $request)
+    public function store(CashOutflowRequest $request) // <-- Pakai Request Baru
     {
-        $validated = $request->validate([
-            'tanggal' => ['required', 'date'],
-            'keterangan' => ['required', 'string', 'max:255'],
-            'harga_satuan' => ['required', 'integer', 'min:0'],
-            'qty' => ['required', 'integer', 'min:1'],
-        ]);
+        $validated = $request->validated();
 
+        // Hitung total pengeluaran
         $validated['total'] = $validated['harga_satuan'] * $validated['qty'];
+        
+        // Selipkan user_id dari user yang sedang login saat ini
+        $validated['user_id'] = auth()->id(); 
+
         CashOutflow::create($validated);
 
         return redirect()->route('cash-outflow.index')->with('success', 'Data berhasil ditambahkan.');
@@ -40,15 +42,11 @@ class CashOutflowController extends Controller
         return view('cash_outflow.edit', compact('cash_outflow'));
     }
 
-    public function update(Request $request, $id)
+    public function update(CashOutflowRequest $request, $id) // <-- Pakai Request Baru
     {
-        $validated = $request->validate([
-            'tanggal' => ['required', 'date'],
-            'keterangan' => ['required', 'string', 'max:255'],
-            'harga_satuan' => ['required', 'integer', 'min:0'],
-            'qty' => ['required', 'integer', 'min:1'],
-        ]);
+        $validated = $request->validated();
 
+        // Hitung ulang total pengeluaran
         $validated['total'] = $validated['harga_satuan'] * $validated['qty'];
         
         $cash_outflow = CashOutflow::findOrFail($id);

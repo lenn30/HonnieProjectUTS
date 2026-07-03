@@ -9,7 +9,6 @@
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
                 
-                <!-- Header Visual: Total & Tombol Tambah -->
                 <div class="flex justify-between items-center mb-6">
                     <div>
                         <p class="text-gray-600 font-medium text-sm">Total Income</p>
@@ -30,7 +29,7 @@
                     <thead>
                         <tr class="border-b-2 border-gray-100">
                             <th class="py-4 px-2">Tanggal</th>
-                            <th class="py-4 px-2">Deskripsi</th>
+                            <th class="py-4 px-2">User</th> <th class="py-4 px-2">Deskripsi</th>
                             <th class="py-4 px-2 text-right">Total Pendapatan</th>
                             <th class="py-4 px-2 text-center">Aksi</th>
                         </tr>
@@ -39,6 +38,9 @@
                         @forelse ($cashInflows as $item)
                             <tr class="border-b border-gray-50 hover:bg-gray-50">
                                 <td class="py-4 px-2">{{ \Carbon\Carbon::parse($item->tanggal)->format('d/m/Y') }}</td>
+                                
+                                <td class="py-4 px-2 text-gray-700">{{ $item->user->name ?? 'Tidak Ada' }}</td>
+                                
                                 <td class="py-4 px-2">{{ $item->deskripsi }}</td>
                                 <td class="py-4 px-2 text-right font-semibold text-green-600">Rp{{ number_format($item->total_pendapatan, 0, ',', '.') }}</td>
                                 <td class="py-4 px-2 text-center flex justify-center gap-2">
@@ -52,7 +54,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" class="py-8 text-center text-gray-500">Belum ada data masuk.</td>
+                                <td colspan="5" class="py-8 text-center text-gray-500">Belum ada data masuk.</td>
                             </tr>
                         @endforelse
                     </tbody>

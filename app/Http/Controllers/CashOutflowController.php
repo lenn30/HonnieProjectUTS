@@ -3,13 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\CashOutflow;
-use App\Http\Requests\CashOutflowRequest; // <-- Import Request Baru
+use App\Http\Requests\CashOutflowRequest;
 
 class CashOutflowController extends Controller
 {
     public function index()
     {
-        // Menggunakan with('user') agar loading data nama user lebih cepat dan ringan
+        // Semua user (termasuk User Biasa) boleh melihat ringkasan tabel data ini
         $cashOutflows = CashOutflow::with('user')->orderBy('id', 'desc')->paginate(10);
         $totalExpense = CashOutflow::sum('total');
         
@@ -18,11 +18,21 @@ class CashOutflowController extends Controller
 
     public function create()
     {
+        // KUNCI: User Biasa dilarang masuk halaman tambah data pengeluaran
+        if (auth()->user()->role !== 'admin') {
+            abort(403, 'Akses ditolak! Hanya Admin yang boleh menambah data pengeluaran.');
+        }
+
         return view('cash_outflow.create');
     }
 
-    public function store(CashOutflowRequest $request) // <-- Pakai Request Baru
+    public function store(CashOutflowRequest $request)
     {
+        // KUNCI: User Biasa dilarang memproses simpan data pengeluaran
+        if (auth()->user()->role !== 'admin') {
+            abort(403, 'Akses ditolak! Hanya Admin yang boleh menambah data pengeluaran.');
+        }
+
         $validated = $request->validated();
 
         // Hitung total pengeluaran
@@ -38,12 +48,22 @@ class CashOutflowController extends Controller
 
     public function edit($id)
     {
+        // KUNCI: User Biasa dilarang masuk halaman edit data pengeluaran
+        if (auth()->user()->role !== 'admin') {
+            abort(403, 'Akses ditolak! Hanya Admin yang boleh mengubah data pengeluaran.');
+        }
+
         $cash_outflow = CashOutflow::findOrFail($id);
         return view('cash_outflow.edit', compact('cash_outflow'));
     }
 
-    public function update(CashOutflowRequest $request, $id) // <-- Pakai Request Baru
+    public function update(CashOutflowRequest $request, $id)
     {
+        // KUNCI: User Biasa dilarang memproses update data pengeluaran
+        if (auth()->user()->role !== 'admin') {
+            abort(403, 'Akses ditolak! Hanya Admin yang boleh memperbarui data pengeluaran.');
+        }
+
         $validated = $request->validated();
 
         // Hitung ulang total pengeluaran
@@ -52,11 +72,16 @@ class CashOutflowController extends Controller
         $cash_outflow = CashOutflow::findOrFail($id);
         $cash_outflow->update($validated);
 
-        return redirect()->route('cash-outflow.index')->with('success', 'Data berhasil diupdate.');
+        return redirect()->route('cash-outflow.index')->with('success', 'Data berhasil diperbarui.');
     }
 
     public function destroy($id)
     {
+        // KUNCI: User Biasa dilarang menghapus data pengeluaran
+        if (auth()->user()->role !== 'admin') {
+            abort(403, 'Akses ditolak! Hanya Admin yang boleh menghapus data pengeluaran.');
+        }
+
         $cash_outflow = CashOutflow::findOrFail($id);
         $cash_outflow->delete();
 
